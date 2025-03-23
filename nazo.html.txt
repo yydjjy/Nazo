@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orange Dynasty--Nazo Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ff9800, #ff5722), url('orange-pattern.png');
+            background-blend-mode: overlay;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #fff;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        #game-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+        }
+        #question {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            color: #444;
+        }
+        #answer {
+            padding: 15px;
+            font-size: 1.2em;
+            width: 90%;
+            max-width: 400px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            transition: border-color 0.3s ease;
+        }
+        #answer:focus {
+            border-color: #ff5722;
+            outline: none;
+        }
+        #submit {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #submit:hover {
+            background-color: #e64a19;
+            transform: scale(1.05);
+        }
+        #submit:active {
+            transform: scale(0.95);
+        }
+        #message {
+            margin-top: 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 10px;
+            animation: fadeIn 0.5s ease;
+        }
+        .success {
+            color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+            animation: flash 1s;
+        }
+        .error {
+            color: #f44336;
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+        @keyframes flash {
+            0% { background-color: #4CAF50; color: white; }
+            50% { background-color: white; color: #4CAF50; }
+            100% { background-color: transparent; color: #4CAF50; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #progress {
+            margin-top: 25px;
+            font-size: 1.2em;
+            color: #000;
+        }
+        #credit {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #000; /* 黑色字体 */
+        }
+    </style>
+</head>
+<body>
+    <h1>Orange Dynasty--Nazo Game</h1>
+    <div id="game-container">
+        <div id="question"></div>
+        <input type="text" id="answer" placeholder="输入你的答案">
+        <button id="submit">提交</button>
+        <div id="message"></div>
+        <div id="progress"></div>
+        <!-- 新增的文字 -->
+        <div id="credit">
+            @liujing19910520
+        </div>
+    </div>
+
+    <!-- 音效 -->
+    <audio id="correct-sound" src="correct.mp3"></audio>
+    <audio id="wrong-sound" src="wrong.mp3"></audio>
+
+    <script>
+        const questions = [
+            { q: "我是一种水果，但不是所有的我都喜欢被剥皮。有时候我在早餐桌上变成汁，有时候我在画家的调色盘上跳舞。我是什么？", a: "orange" },
+            { q: "我藏在每个人的眼睛里，却从不说一句话。当你闭上眼睛时，我暂时休息，但当月亮升起时，我依然在工作。我是什么？", a: "see" },
+            { q: "我站在路边，像个沉默的诗人，用箭头和数字诉说方向。如果我不说话，你可能会迷路，但如果你读不懂我，我只能耸肩。我是什么？", a: "sign" },
+            { q: "我是一对双胞胎，却从不分开。我坐在你的鼻子上，像个小小侦探，帮助你破解世界的模糊密码。我是什么？", a: "glasses" },
+            { q: "我是一个名字，听起来像动物园的缩写，却住在人类的房子里。如果你在希腊问起我的意思，他们会告诉你那是“生命”。我是什么？", a: "Zoe" },
+            { q: "我住在你的胸膛里，像个永不疲倦的鼓手。情人节那天，我被画成红色，但医生却说我更像一台泵。我是什么？", a: "heart" },
+            { q: "我是一个缩写，藏在电视机的秘密里。如果你按下遥控器，我可能会跳出来，但只有少数人知道我完整的名字是“奇怪但真实”。我是什么？", a: "sbt" },
+            { q: "我有三条边，三只角，像个爱三角的戏剧主角。如果你给我加个朋友，我就变成四边形，但我宁愿保持尖锐的个性。我是什么？", a: "triangle" },
+            { q: "我甜得让人想咬我，却在生日会上被刀子追杀。我的名字听起来像“凯克”，但我不会开玩笑，除非你忘了蜡烛。我是什么？", a: "cake" },
+            { q: "我是个四四方方的家伙，比圆形更严肃，比三角形更稳定。如果你踩在我身上，我不会抱怨，因为我早就习惯当棋盘的一部分。我是什么？", a: "square" },
+            { q: "我住在你的脸上，像个嗅觉侦探，整天闻东闻西。如果感冒来了，我就罢工，变成流鼻涕的小叛徒。我是什么？", a: "nose" },
+            { q: "我漂浮在天上，像个棉花糖诗人，写下雨水的诗篇。有人说我“阴沉”，但我只是想给大地洗个澡。我是什么？", a: "cloud" },
+            { q: "我是个瘦长的家伙，手握墨水的魔法，却总被人类拿来“写”意忘形。如果我干涸了，你就得给我找个新“芯”。我是什么？", a: "pen" },
+            { q: "我是个夜间的调情大师，圆的时候像个大饼，缺的时候像被咬了一口。狼人爱我，诗人追我，但太阳老是抢我风头。我是什么？", a: "moon" },
+            { q: "我是一个数字，既能被3整除，也能被5整除，但如果你用7去试，我就笑而不语。我比50大，比60小，而且我的两个数字加起来是个平方数。我是什么？", a: "54" },
+            { q: "我是一个词，藏在“temperature”里，却比它短得多。如果你把我倒过来，我还是我，但如果你把我写成中文，我就变成了“种族”。我是什么？", a: "race" },
+            { q: "我是一个形状，有五条边，但不是所有边都一样长。如果你在镜子里看我，我会变得左右颠倒，却不会改变我的本质。我的名字听起来像个惩罚，但其实我只是个几何小可爱。我是什么？", a: "pentagon" },
+            { q: "我是一种动物，名字里有三个元音，却从不唱歌。我的家在地下，但我的影子却能在天上飞。如果你在拼字游戏里用我，能得双倍分数。我是什么？", a: "mole" },
+            { q: "我是一个词，由五个字母组成，首尾都是辅音。如果把我中间的字母拿掉，我变成了一个新的词，意思是从“多”变成“少”。我是什么？", a: "fleck" },
+            { q: "我是一个数学概念，既是自己的倒数，也是自己的平方。如果你在数轴上找我，我离零最近，但不是零。我是什么？", a: "1" },
+            { q: "我是一个物体，既是圆的，又不是圆的。如果你从侧面看我，我是直线，但从上面看我，我是完美的环。我的名字里有“n”，却从不“no”。我是什么？", a: "ring" }
+        ];
+
+        let currentQuestion = parseInt(localStorage.getItem("currentQuestion")) || 0;
+
+        function loadQuestion() {
+            if (currentQuestion < questions.length) {
+                document.getElementById("question").textContent = `第 ${currentQuestion + 1} 关：${questions[currentQuestion].q}`;
+                document.getElementById("answer").value = "";
+                document.getElementById("message").textContent = "";
+                document.getElementById("progress").textContent = `进度：${currentQuestion + 1}/${questions.length}`;
+            } else {
+                document.getElementById("game-container").innerHTML = "<h2>恭喜你通关啦！所有谜题都解开了！</h2>";
+            }
+        }
+
+        function checkAnswer() {
+            const userAnswer = document.getElementById("answer").value.trim().toLowerCase();
+            const correctAnswer = questions[currentQuestion].a.toLowerCase();
+            const message = document.getElementById("message");
+
+            if (userAnswer === correctAnswer) {
+                message.textContent = "恭喜答对了，进入下一关！";
+                message.className = "success";
+                document.getElementById("correct-sound").play();
+                currentQuestion++;
+                localStorage.setItem("currentQuestion", currentQuestion);
+                setTimeout(loadQuestion, 1000);
+            } else {
+                message.textContent = "哎呀，错了，再试试吧！";
+                message.className = "error";
+                document.getElementById("wrong-sound").play();
+            }
+        }
+
+        document.getElementById("submit").addEventListener("click", checkAnswer);
+        document.getElementById("answer").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        });
+
+        loadQuestion();
+    </script>
+</body>
+</html>

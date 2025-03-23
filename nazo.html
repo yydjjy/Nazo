@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orange Dynasty--Nazo Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ff9800, #ff5722), url('orange-pattern.png');
+            background-blend-mode: overlay;
+            margin: 0;
+            padding: 20px;
+            color: #222;
+            overflow: hidden;
+        }
+        h1 {
+            color: #fff;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        #game-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+        #question {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            color: #444;
+        }
+        #answer-container {
+            position: relative;
+            width: 90%;
+            max-width: 400px;
+            margin: 0 auto 25px;
+        }
+        #answer-label {
+            font-size: 1.2em;
+            color: #000;
+            position: absolute;
+            top: -25px;
+            left: 0; /* "输"字与输入框左边界对齐 */
+        }
+        #answer {
+            padding: 15px;
+            font-size: 1.2em;
+            width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: border-color 0.3s ease;
+        }
+        #answer:focus {
+            border-color: #ff5722;
+            outline: 2px solid #ff5722;
+        }
+        #button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        #submit, #hint-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #submit:hover, #hint-button:hover {
+            background-color: #e64a19;
+            transform: scale(1.05);
+        }
+        #submit:focus, #hint-button:focus {
+            outline: 2px solid #ff5722;
+        }
+        #prev-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #fff176;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #prev-button:hover {
+            background-color: #ffee58;
+            transform: scale(1.05);
+        }
+        #prev-button:focus {
+            outline: 2px solid #fff176;
+        }
+        #next-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #next-button:disabled, #prev-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #next-button:hover:not(:disabled) {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+        #next-button:focus {
+            outline: 2px solid #4CAF50;
+        }
+        #message {
+            margin-top: 25px;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 10px;
+            animation: fadeIn 0.5s ease;
+        }
+        .success {
+            color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+            animation: flash 1s;
+        }
+        .error {
+            color: #f44336;
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+        @keyframes flash {
+            0% { background-color: #4CAF50; color: white; }
+            50% { background-color: white; color: #4CAF50; }
+            100% { background-color: transparent; color: #4CAF50; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        progress {
+            width: 100%;
+            height: 20px;
+            margin-top: 25px;
+        }
+        #credit {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #000;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ff0;
+            animation: confetti-fall 2s linear;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Orange Dynasty--Nazo Game</h1>
+    <div id="game-container">
+        <div id="question"></div>
+        <div id="answer-container">
+            <label id="answer-label" for="answer">输入英文答案</label>
+            <input type="text" id="answer" placeholder="输入你的答案">
+        </div>
+        <div id="button-container">
+            <div class="button-group">
+                <button id="submit" aria-label="提交答案">提交</button>
+                <button id="prev-button" aria-label="上一题">上一题</button>
+            </div>
+            <div class="button-group">
+                <button id="hint-button" aria-label="获取提示">提示</button>
+                <button id="next-button" disabled aria-label="下一题">下一题</button>
+            </div>
+        </div>
+        <div id="message" role="alert" aria-live="polite"></div>
+        <progress id="progress-bar" max="21" value="0"></progress>
+        <div id="credit">@carmel_qveen27</div>
+    </div>
+
+    <audio id="correct-sound" src="correct.mp3"></audio>
+    <audio id="wrong-sound" src="wrong.mp3"></audio>
+
+    <script>
+        const questions = [
+            { q: "我是一种水果，但不是所有的我都喜欢被剥皮。有时候我在早餐桌上变成汁，有时候我在画家的调色盘上跳舞。我是什么？", a: "orange", hint: "想想一种颜色鲜艳的水果" },
+            { q: "我藏在每个人的眼睛里，却从不说一句话。当你闭上眼睛时，我暂时休息，但当月亮升起时，我依然在工作。我是什么？", a: "see", hint: "与视觉有关" },
+            { q: "我站在路边，像个沉默的诗人，用箭头和数字诉说方向。如果我不说话，你可能会迷路，但如果你读不懂我，我只能耸肩。我是什么？", a: "sign", hint: "路边常见" },
+            { q: "我是一对双胞胎，却从不分开。我坐在你的鼻子上，像个小小侦探，帮助你破解世界的模糊密码。我是什么？", a: "glasses", hint: "戴在脸上" },
+            { q: "我是一个名字，听起来像动物园的缩写，却住在人类的房子里。如果你在希腊问起我的意思，他们会告诉你那是“生命”。我是什么？", a: "Zoe", hint: "希腊语中的‘生命’" },
+            { q: "我住在你的胸膛里，像个永不疲倦的鼓手。情人节那天，我被画成红色，但医生却说我更像一台泵。我是什么？", a: "heart", hint: "与爱和血液有关" },
+            { q: "我是一个缩写，藏在电视机的秘密里。如果你按下遥控器，我可能会跳出来，但只有少数人知道我完整的名字是“奇怪但真实”。我是什么？", a: "sbt", hint: "电视相关缩写" },
+            { q: "我有三条边，三只角，像个爱三角的戏剧主角。如果你给我加个朋友，我就变成四边形，但我宁愿保持尖锐的个性。我是什么？", a: "triangle", hint: "几何形状" },
+            { q: "我甜得让人想咬我，却在生日会上被刀子追杀。我的名字听起来像“凯克”，但我不会开玩笑，除非你忘了蜡烛。我是什么？", a: "cake", hint: "生日必备" },
+            { q: "我是个四四方方的家伙，比圆形更严肃，比三角形更稳定。如果你踩在我身上，我不会抱怨，因为我早就习惯当棋盘的一部分。我是什么？", a: "square", hint: "四边形" },
+            { q: "我住在你的脸上，像个嗅觉侦探，整天闻东闻西。如果感冒来了，我就罢工，变成流鼻涕的小叛徒。我是什么？", a: "nose", hint: "五官之一" },
+            { q: "我漂浮在天上，像个棉花糖诗人，写下雨水的诗篇。有人说我“阴沉”，但我只是想给大地洗个澡。我是什么？", a: "cloud", hint: "天空中的东西" },
+            { q: "我是个瘦长的家伙，手握墨水的魔法，却总被人类拿来“写”意忘形。如果我干涸了，你就得给我找个新“芯”。我是什么？", a: "pen", hint: "写作工具" },
+            { q: "我是个夜间的调情大师，圆的时候像个大饼，缺的时候像被咬了一口。狼人爱我，诗人追我，但太阳老是抢我风头。我是什么？", a: "moon", hint: "夜晚的主角" },
+            { q: "我是一个数字，既能被3整除，也能被5整除，但如果你用7去试，我就笑而不语。我比50大，比60小，而且我的两个数字加起来是个平方数。我是什么？", a: "54", hint: "数学题" },
+            { q: "我是一个词，藏在“temperature”里，却比它短得多。如果你把我倒过来，我还是我，但如果你把我写成中文，我就变成了“种族”。我是什么？", a: "race", hint: "回文词" },
+            { q: "我是一个形状，有五条边，但不是所有边都一样长。如果你在镜子里看我，我会变得左右颠倒，却不会改变我的本质。我的名字听起来像个惩罚，但其实我只是个几何小可爱。我是什么？", a: "pentagon", hint: "五边形" },
+            { q: "我是一种动物，名字里有三个元音，却从不唱歌。我的家在地下，但我的影子却能在天上飞。如果你在拼字游戏里用我，能得双倍分数。我是什么？", a: "mole", hint: "地下生活的动物" },
+            { q: "我是一个词，由五个字母组成，首尾都是辅音。如果把我中间的字母拿掉，我变成了一个新的词，意思是从“多”变成“少”。我是什么？", a: "fleck", hint: "英文单词游戏" },
+            { q: "我是一个数学概念，既是自己的倒数，也是自己的平方。如果你在数轴上找我，我离零最近，但不是零。我是什么？", a: "1", hint: "特殊的数字" },
+            { q: "我是一个物体，既是圆的，又不是圆的。如果你从侧面看我，我是直线，但从上面看我，我是完美的环。我的名字里有“n”，却从不“no”。我是什么？", a: "ring", hint: "首饰之一" }
+        ];
+
+        let currentQuestion = parseInt(localStorage.getItem("currentQuestion")) || 0;
+        const answers = JSON.parse(localStorage.getItem("answers")) || new Array(questions.length).fill("");
+
+        function createConfetti() {
+            const container = document.getElementById("game-container");
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement("div");
+                confetti.className = "confetti";
+                confetti.style.left = Math.random() * 100 + "%";
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.animationDelay = Math.random() * 1 + "s";
+                container.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 2000);
+            }
+        }
+
+        function loadQuestion() {
+            if (currentQuestion < questions.length) {
+                document.getElementById("question").textContent = `第 ${currentQuestion + 1} 关：${questions[currentQuestion].q}`;
+                document.getElementById("answer").value = answers[currentQuestion];
+                document.getElementById("answer").focus();
+                document.getElementById("message").textContent = "";
+                document.getElementById("progress-bar").value = currentQuestion + 1;
+                document.getElementById("progress-bar").max = questions.length;
+                document.getElementById("prev-button").disabled = currentQuestion === 0;
+                document.getElementById("next-button").disabled = !answers[currentQuestion];
+            } else {
+                document.getElementById("game-container").innerHTML = `
+                    <h2>恭喜你通关啦！所有谜题都解开了！</h2>
+                    <button id="restart" aria-label="重新开始">重新开始</button>
+                `;
+                createConfetti();
+                document.getElementById("restart").addEventListener("click", () => {
+                    localStorage.clear();
+                    currentQuestion = 0;
+                    answers.fill("");
+                    localStorage.setItem("answers", JSON.stringify(answers));
+                    loadQuestion();
+                });
+            }
+        }
+
+        function checkAnswer() {
+            const userAnswer = document.getElementById("answer").value.trim().toLowerCase();
+            const message = document.getElementById("message");
+
+            if (!userAnswer) {
+                message.textContent = "请输入答案后再提交！";
+                message.className = "error";
+                return;
+            }
+
+            const correctAnswer = questions[currentQuestion].a.toLowerCase();
+            if (userAnswer === correctAnswer) {
+                message.textContent = "恭喜答对了，进入下一关！";
+                message.className = "success";
+                document.getElementById("correct-sound").play().catch(() => {});
+                answers[currentQuestion] = userAnswer;
+                localStorage.setItem("answers", JSON.stringify(answers));
+                document.getElementById("next-button").disabled = false;
+                createConfetti();
+                setTimeout(() => {
+                    if (currentQuestion < questions.length - 1) {
+                        currentQuestion++;
+                        localStorage.setItem("currentQuestion", currentQuestion);
+                        loadQuestion();
+                    }
+                }, 3000);
+            } else {
+                message.textContent = "哎呀，错了，再试试吧！";
+                message.className = "error";
+                document.getElementById("wrong-sound").play().catch(() => {});
+            }
+        }
+
+        function showHint() {
+            const message = document.getElementById("message");
+            message.textContent = `提示：${questions[currentQuestion].hint}`;
+            message.className = "";
+        }
+
+        document.getElementById("submit").addEventListener("click", checkAnswer);
+        document.getElementById("hint-button").addEventListener("click", showHint);
+        document.getElementById("prev-button").addEventListener("click", () => {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                localStorage.setItem("currentQuestion", currentQuestion);
+                loadQuestion();
+            }
+        });
+        document.getElementById("next-button").addEventListener("click", () => {
+            if (currentQuestion < questions.length - 1 && !document.getElementById("next-button").disabled) {
+                currentQuestion++;
+                localStorage.setItem("currentQuestion", currentQuestion);
+                loadQuestion();
+            }
+        });
+        document.getElementById("answer").addEventListener("keypress", (event) => {
+            if (event.key === "Enter") checkAnswer();
+        });
+
+        loadQuestion();
+    </script>
+</body>
+</html>
